@@ -140,10 +140,3 @@ export const continueWatching = [
   { title: 'SilentTalk', progress: 65, id: 'silenttalk' },
   { title: 'Listenly', progress: 92, id: 'listenly' },
 ]
-
-export type ProfileKind = 'Recruiter' | 'Developer' | 'Creative'
-export const profileOrder: Record<ProfileKind, string[]> = {
-  Recruiter: ['about', 'journey', 'originals', 'skills', 'achievements', 'resume'],
-  Developer: ['originals', 'skills', 'about', 'journey', 'achievements', 'resume'],
-  Creative: ['originals', 'about', 'skills', 'journey', 'achievements', 'resume'],
-}

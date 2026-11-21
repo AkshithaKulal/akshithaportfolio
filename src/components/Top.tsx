@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
-import { profile, continueWatching, projects, type ProfileKind } from '../data/portfolio'
-import { Blobs, Magnetic, SplitText, Typewriter } from './Fx'
+import { profile, continueWatching, projects } from '../data/portfolio'
+import { Blobs, Magnetic, ScrollRail, SplitText, Typewriter } from './Fx'
 
-export function Navbar({ kind, onSwitch }: { kind: ProfileKind; onSwitch: () => void }) {
+export function Navbar() {
   const [hidden, setHidden] = useState(false)
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -27,7 +27,6 @@ export function Navbar({ kind, onSwitch }: { kind: ProfileKind; onSwitch: () => 
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <button onClick={onSwitch} className="text-xs border border-ink/30 rounded px-3 py-1.5 hover:border-ink">{kind} ▾</button>
           <button className="md:hidden text-2xl" onClick={() => setOpen(!open)} aria-label="Menu">☰</button>
         </div>
       </div>
@@ -94,22 +93,22 @@ export function Hero({ onPlay }: { onPlay: () => void }) {
   )
 }
 
-export function ContinueWatching({ kind }: { kind: ProfileKind }) {
+export function ContinueWatching() {
   return (
     <section className="px-5 sm:px-10 pt-6 relative z-10 max-w-[1500px] mx-auto">
-      <h3 className="text-lg font-semibold mb-3">Continue Watching for {kind}s</h3>
-      <div className="flex gap-4 overflow-x-auto hide-scroll pb-2">
+      <h3 className="text-lg font-semibold mb-3">Continue Watching</h3>
+      <ScrollRail>
         {continueWatching.map((c) => {
           const p = projects.find((x) => x.id === c.id)!
           return (
-            <a key={c.id} href="#originals" className={`shrink-0 w-64 aspect-video rounded-md bg-gradient-to-br ${p.gradient} p-4 text-white flex flex-col justify-end relative overflow-hidden hover:scale-105 transition`}>
+            <a key={c.id} href="#originals" className={`snap-start shrink-0 w-64 sm:w-72 aspect-video rounded-md bg-gradient-to-br ${p.gradient} p-4 text-white flex flex-col justify-end relative overflow-hidden hover:scale-105 transition`}>
               <span className="display text-3xl">{c.title}</span>
               <span className="text-xs text-white/85">{p.genre}</span>
               <span className="absolute bottom-0 left-0 h-1 bg-accent" style={{ width: `${c.progress}%` }} />
             </a>
           )
         })}
-      </div>
+      </ScrollRail>
     </section>
   )
 }

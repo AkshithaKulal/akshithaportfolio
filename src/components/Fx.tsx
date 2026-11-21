@@ -190,3 +190,89 @@ export function Blobs() {
     </div>
   )
 }
+
+/**
+ * Horizontal row you can scroll everywhere: swipe on touch, drag with a mouse,
+ * wheel/trackpad, arrow buttons, and a progress bar underneath.
+ */
+export function ScrollRail({ children, className = '' }: { children: ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [left, setLeft] = useState(false)
+  const [right, setRight] = useState(false)
+  const [progress, setProgress] = useState({ start: 0, size: 100 })
+  const drag = useRef({ down: false, x: 0, sl: 0, moved: false })
+
+  const update = () => {
+    const el = ref.current
+    if (!el) return
+    const max = el.scrollWidth - el.clientWidth
+    setLeft(el.scrollLeft > 4)
+    setRight(el.scrollLeft < max - 4)
+    const size = el.scrollWidth ? (el.clientWidth / el.scrollWidth) * 100 : 100
+    setProgress({ size, start: max > 0 ? (el.scrollLeft / max) * (100 - size) : 0 })
+  }
+  useEffect(() => {
+    update()
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    Array.from(el.children).forEach((c) => ro.observe(c))
+    window.addEventListener('resize', update)
+    return () => { ro.disconnect(); window.removeEventListener('resize', update) }
+  }, [])
+
+  const endDrag = () => {
+    if (!drag.current.down) return
+    drag.current.down = false
+    const el = ref.current
+    if (el) { el.style.scrollSnapType = ''; el.style.scrollBehavior = '' }
+  }
+
+  const by = (dir: 1 | -1) => {
+    const el = ref.current
+    if (el) el.scrollBy({ left: dir * Math.max(280, el.clientWidth * 0.8), behavior: 'smooth' })
+  }
+
+  return (
+    <div className={`relative group/rail ${className}`}>
+      <div
+        ref={ref}
+        onScroll={update}
+        onPointerDown={(e) => {
+          if (e.pointerType !== 'mouse') return
+          drag.current = { down: true, x: e.clientX, sl: ref.current!.scrollLeft, moved: false }
+          ref.current!.style.scrollSnapType = 'none'
+          ref.current!.style.scrollBehavior = 'auto'
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current
+          if (!d.down) return
+          const dx = e.clientX - d.x
+          if (Math.abs(dx) > 5) d.moved = true
+          ref.current!.scrollLeft = d.sl - dx
+        }}
+        onPointerUp={() => endDrag()}
+        onPointerLeave={() => endDrag()}
+        onClickCapture={(e) => { if (drag.current.moved) { e.stopPropagation(); e.preventDefault(); drag.current.moved = false } }}
+        className="flex gap-4 sm:gap-6 overflow-x-auto hide-scroll snap-x snap-mandatory scroll-smooth pb-4 cursor-grab active:cursor-grabbing overscroll-x-contain"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {children}
+      </div>
+
+      <button
+        aria-label="Scroll left" onClick={() => by(-1)}
+        className={`hidden sm:flex absolute left-1 top-[40%] -translate-y-1/2 z-10 h-11 w-11 items-center justify-center rounded-full bg-ink text-bg shadow-lg hover:bg-accent transition ${left ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >←</button>
+      <button
+        aria-label="Scroll right" onClick={() => by(1)}
+        className={`hidden sm:flex absolute right-1 top-[40%] -translate-y-1/2 z-10 h-11 w-11 items-center justify-center rounded-full bg-ink text-bg shadow-lg hover:bg-accent transition ${right ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >→</button>
+
+      <div className="mt-1 h-1 rounded-full bg-ink/10 overflow-hidden" aria-hidden>
+        <div className="h-full rounded-full bg-accent transition-[margin,width] duration-150" style={{ width: `${progress.size}%`, marginLeft: `${progress.start}%` }} />
+      </div>
+    </div>
+  )
+}

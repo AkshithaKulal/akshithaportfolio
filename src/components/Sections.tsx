@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import { Counter, Magnetic, Marquee, Tilt } from './Fx'
-import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { Counter, Marquee, ScrollRail, Tilt } from './Fx'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   profile, projects, seasons, skillGenres, topPicks, achievements, certifications, type Project,
 } from '../data/portfolio'
@@ -23,13 +23,11 @@ export function About() {
         <motion.img whileHover={{ rotateY: 8, rotateX: -4 }} style={{ transformPerspective: 800 }} src={profile.photo} alt={profile.fullName} className="rounded-lg w-full max-w-xs object-cover aspect-[3/4] object-top shadow-2xl shadow-accent/20" />
         <div>
           <p className="text-lg sm:text-xl text-ink/75 leading-relaxed">{profile.summary}</p>
-          <div className="mt-6 grid grid-cols-3 gap-4 max-w-md">
-            {([[8.39, 2, 'CGPA'], [3, 0, 'Originals'], [45, 0, 'Signs']] as [number, number, string][]).map(([n, d, l]) => (
-              <div key={l} className="bg-card rounded-lg p-4 text-center hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10 transition">
-                <div className="display text-4xl text-accent"><Counter to={n} decimals={d} /></div>
-                <div className="text-xs text-muted">{l}</div>
-              </div>
-            ))}
+          <div className="mt-6 flex max-w-md">
+            <div className="bg-card rounded-lg px-8 py-4 text-center hover:-translate-y-1 hover:shadow-lg hover:shadow-accent/10 transition">
+              <div className="display text-4xl text-accent"><Counter to={8.39} decimals={2} /></div>
+              <div className="text-xs text-muted">CGPA</div>
+            </div>
           </div>
           <p className="mt-6 text-muted">📍 {profile.location}</p>
         </div>
@@ -79,23 +77,6 @@ function ProjectCard({ p, onOpen }: { p: Project; onOpen: () => void }) {
 
 export function Originals() {
   const [active, setActive] = useState<Project | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
-  const rail = useRef<HTMLDivElement>(null)
-  const [dist, setDist] = useState(0)
-  useEffect(() => {
-    const measure = () => { if (rail.current) setDist(Math.max(0, rail.current.scrollWidth - window.innerWidth)) }
-    measure(); window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
-  const x = useTransform(scrollYProgress, [0, 1], [0, -dist])
-  const [wide, setWide] = useState(false)
-  useEffect(() => {
-    const m = window.matchMedia('(min-width: 1024px) and (hover: hover) and (prefers-reduced-motion: no-preference)')
-    const f = () => setWide(m.matches)
-    f(); m.addEventListener('change', f)
-    return () => m.removeEventListener('change', f)
-  }, [])
   useEffect(() => {
     if (!active) return
     const k = (e: KeyboardEvent) => e.key === 'Escape' && setActive(null)
@@ -105,14 +86,12 @@ export function Originals() {
 
   return (
     <section id="originals">
-      <div ref={ref} style={{ height: wide ? '220vh' : 'auto' }} className="relative">
-        <div className={wide ? 'sticky top-0 h-screen flex flex-col justify-center overflow-hidden' : 'py-20'}>
-          <div className="px-5 sm:px-10 max-w-[1500px] mx-auto w-full"><Title eyebrow="EPISODE 3">Originals</Title></div>
-          <motion.div ref={rail} style={wide ? { x, paddingLeft: 'max(2.5rem, calc((100vw - 1500px) / 2 + 2.5rem))', paddingRight: '2.5rem' } : undefined} className={`flex gap-6 px-5 sm:px-10 ${wide ? 'w-max' : 'overflow-x-auto hide-scroll snap-x'}`}>
-            {projects.map((p) => (<ProjectCard key={p.id} p={p} onOpen={() => setActive(p)} />))}
-            <div className="shrink-0 w-[60vw] sm:w-[320px] flex items-center text-muted display text-4xl">More episodes coming soon…</div>
-          </motion.div>
-        </div>
+      <div className={wrap + ' pb-10'}>
+        <Title eyebrow="EPISODE 3">Originals</Title>
+        <ScrollRail>
+          {projects.map((p) => (<div key={p.id} className="snap-start shrink-0"><ProjectCard p={p} onOpen={() => setActive(p)} /></div>))}
+          <div className="snap-start shrink-0 w-[60vw] sm:w-[320px] flex items-center text-muted display text-4xl">More episodes coming soon…</div>
+        </ScrollRail>
       </div>
 
       <div className={wrap + ' pt-0'}>
@@ -132,14 +111,14 @@ export function Originals() {
           <span className="shine px-6 py-2.5 bg-ink text-bg font-semibold rounded group-hover:bg-accent transition">▶ Open live demo</span>
         </motion.a>
         <h3 className="text-lg font-semibold mb-3">Top 10 Picks in Skills</h3>
-        <div className="flex gap-4 overflow-x-auto hide-scroll pb-4">
+        <ScrollRail>
           {topPicks.map((t, i) => (
-            <div key={t} className="shrink-0 flex items-end">
-              <span className="display text-[9rem] leading-[0.8] text-transparent [-webkit-text-stroke:3px_#c9b8a6]">{i + 1}</span>
+            <div key={t} className="snap-start shrink-0 flex items-end">
+              <span className="display text-[7rem] sm:text-[9rem] leading-[0.8] text-transparent [-webkit-text-stroke:3px_#c9b8a6] select-none">{i + 1}</span>
               <span className="bg-card rounded-md px-4 py-6 w-32 text-sm font-medium -ml-3">{t}</span>
             </div>
           ))}
-        </div>
+        </ScrollRail>
       </div>
 
       <AnimatePresence>
