@@ -113,59 +113,101 @@ export function ContinueWatching() {
   )
 }
 
-/** Fullscreen highlight reel with pause / prev / next. */
+const SLIDE_MS = 4500
+
+type Slide = { kicker: string; title: string; sub: string; chip?: string; cta?: boolean }
+const slides: Slide[] = [
+  { kicker: 'Meet', title: profile.fullName, sub: profile.role, chip: 'Mangalore, India' },
+  { kicker: 'Education', title: 'Final-year AI/ML', sub: 'Canara Engineering College, Mangalore', chip: '8.39 CGPA' },
+  { kicker: 'Original 01', title: 'SilentTalk', sub: 'Indian Sign Language, spoken aloud in Tulu', chip: 'Computer Vision' },
+  { kicker: 'Original 02', title: 'AI Knowledge Bot', sub: 'A RAG chatbot grounded in your own documents', chip: 'Generative AI' },
+  { kicker: 'Original 03', title: 'Listenly', sub: 'Eight emotions read from speech, live on Vercel', chip: 'Deep Learning' },
+  { kicker: 'Next episode', title: 'Let’s build together', sub: profile.email, cta: true },
+]
+
+/** Fullscreen highlight reel. Each slide fills its progress bar, then advances; stops on the last. */
 export function PlayIntro({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const slides = [
-    { big: profile.fullName, small: profile.role },
-    { big: 'Final-year AI/ML', small: 'Canara Engineering College · CGPA 8.39' },
-    { big: '3 Originals', small: 'SilentTalk · AI Knowledge Bot · Listenly' },
-    { big: '45 signs', small: 'Indian Sign Language, spoken aloud in Tulu' },
-    { big: '8 emotions', small: 'Recognised from speech with CNN-LSTM' },
-    { big: 'Let’s build next', small: profile.email },
-  ]
   const [i, setI] = useState(0)
   const [paused, setPaused] = useState(false)
+  const last = slides.length - 1
+  const go = (n: number) => setI(Math.min(last, Math.max(0, n)))
+
   useEffect(() => { if (open) { setI(0); setPaused(false) } }, [open])
-  useEffect(() => {
-    if (!open || paused) return
-    const t = setTimeout(() => setI((n) => (n + 1) % slides.length), 3000)
-    return () => clearTimeout(t)
-  }, [open, paused, i, slides.length])
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       if (e.key === ' ') { e.preventDefault(); setPaused((p) => !p) }
-      if (e.key === 'ArrowRight') setI((n) => (n + 1) % slides.length)
-      if (e.key === 'ArrowLeft') setI((n) => (n - 1 + slides.length) % slides.length)
+      if (e.key === 'ArrowRight') setI((n) => Math.min(last, n + 1))
+      if (e.key === 'ArrowLeft') setI((n) => Math.max(0, n - 1))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose, slides.length])
+  }, [open, onClose, last])
 
+  const s = slides[i]
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-[90] bg-[#231a17] text-white flex items-center justify-center" initial={{ opacity: 0, scale: 1.2 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-          <img src={profile.photo} alt="" className="absolute inset-0 w-full h-full object-cover object-top opacity-20 blur-sm" />
-          <div className="absolute top-0 inset-x-0 flex gap-1 p-4">
+        <motion.div
+          className="fixed inset-0 z-[90] bg-[#231a17] text-white overflow-hidden"
+          initial={{ opacity: 0, scale: 1.06 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <div className="absolute -top-40 -left-32 w-[36rem] h-[36rem] rounded-full bg-accent/30 blur-3xl" style={{ animation: 'drift 16s ease-in-out infinite' }} />
+          <div className="absolute -bottom-48 -right-24 w-[32rem] h-[32rem] rounded-full bg-gold/25 blur-3xl" style={{ animation: 'drift 20s ease-in-out infinite reverse' }} />
+
+          {/* progress segments */}
+          <div className="absolute top-0 inset-x-0 z-20 flex gap-1.5 p-4 sm:px-10">
             {slides.map((_, n) => (
-              <div key={n} className="h-1 flex-1 bg-white/20 rounded overflow-hidden">
-                <div className="h-full bg-white" style={{ width: n < i ? '100%' : n === i ? '100%' : '0%', transition: n === i && !paused ? 'width 3s linear' : 'none', ...(n === i ? {} : {}) }} />
-              </div>
+              <button key={n} onClick={() => go(n)} aria-label={`Go to slide ${n + 1}`} className="h-1.5 flex-1 bg-white/20 rounded overflow-hidden">
+                <div
+                  key={n === i ? `a${i}` : `b${n}`}
+                  className="h-full bg-white"
+                  style={n < i ? { width: '100%' } : n > i ? { width: '0%' } : {
+                    animation: `segfill ${SLIDE_MS}ms linear forwards`,
+                    animationPlayState: paused ? 'paused' : 'running',
+                  }}
+                  onAnimationEnd={() => { if (n === i && i < last) go(i + 1) }}
+                />
+              </button>
             ))}
           </div>
-          <AnimatePresence mode="wait">
-            <motion.div key={i} className="relative text-center px-6" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }}>
-              <h2 className="display text-6xl sm:text-9xl">{slides[i].big}</h2>
-              <p className="mt-4 text-lg sm:text-2xl text-white/80">{slides[i].small}</p>
+
+          <div className="relative z-10 h-full max-w-[1300px] mx-auto px-6 sm:px-12 grid md:grid-cols-[1.2fr_0.8fr] gap-8 items-center pt-16 pb-28">
+            <AnimatePresence mode="wait">
+              <motion.div key={i} initial={{ opacity: 0, y: 36 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -24 }} transition={{ duration: 0.45 }}>
+                <p className="text-gold font-semibold tracking-[0.35em] text-xs sm:text-sm">{s.kicker.toUpperCase()}</p>
+                <h2 className="display mt-3 leading-[0.92]" style={{ fontSize: 'clamp(3.2rem, 9vw, 8.5rem)' }}>{s.title}</h2>
+                <p className="mt-4 text-lg sm:text-2xl text-white/80 break-words">{s.sub}</p>
+                {s.chip && <span className="inline-block mt-6 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-sm">{s.chip}</span>}
+                {s.cta && (
+                  <div className="mt-8 flex flex-wrap gap-3">
+                    <a href={`mailto:${profile.email}`} className="px-7 py-3 bg-accent text-white font-semibold rounded hover:brightness-110 transition">✉ Email me</a>
+                    <a href="#originals" onClick={onClose} className="px-7 py-3 bg-white/15 font-semibold rounded hover:bg-white/25 transition">See the projects</a>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            <motion.div
+              key={`p${i}`}
+              initial={{ opacity: 0, rotate: i % 2 ? 4 : -4, scale: 0.92 }} animate={{ opacity: 1, rotate: i % 2 ? 2 : -2, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="hidden md:block justify-self-center w-full max-w-[380px]"
+            >
+              <img src={profile.photo} alt="" className="w-full aspect-[3/4] object-cover object-top rounded-3xl shadow-2xl shadow-black/50 border-4 border-white/10" />
             </motion.div>
-          </AnimatePresence>
-          <div className="absolute bottom-8 flex gap-3 text-sm">
-            <button onClick={() => setI((n) => (n - 1 + slides.length) % slides.length)} className="px-4 py-2 bg-white/15 rounded">←</button>
-            <button onClick={() => setPaused(!paused)} className="px-4 py-2 bg-white/15 rounded">{paused ? '▶ Resume' : '⏸ Pause'}</button>
-            <button onClick={() => setI((n) => (n + 1) % slides.length)} className="px-4 py-2 bg-white/15 rounded">→</button>
-            <button onClick={onClose} className="px-4 py-2 bg-white text-black rounded">✕ Close</button>
+          </div>
+
+          <div className="absolute bottom-0 inset-x-0 z-20 flex items-center justify-between gap-3 px-4 sm:px-10 py-5 text-sm">
+            <span className="text-white/60 tabular-nums whitespace-nowrap">{i + 1}/{slides.length}</span>
+            <div className="flex gap-2">
+              <button onClick={() => go(i - 1)} disabled={i === 0} className="px-4 py-2 bg-white/10 rounded hover:bg-white/20 disabled:opacity-30 transition" aria-label="Previous">←</button>
+              <button onClick={() => setPaused(!paused)} className="px-3 sm:px-4 py-2 bg-white/10 rounded hover:bg-white/20 transition sm:min-w-[6.5rem] whitespace-nowrap">{paused ? '▶' : '⏸'}<span className="hidden sm:inline">{paused ? ' Resume' : ' Pause'}</span></button>
+              <button onClick={() => go(i + 1)} disabled={i === last} className="px-4 py-2 bg-white/10 rounded hover:bg-white/20 disabled:opacity-30 transition" aria-label="Next">→</button>
+            </div>
+            <button onClick={onClose} className="px-3 sm:px-4 py-2 bg-white text-black font-semibold rounded hover:bg-gold transition whitespace-nowrap">✕ Close</button>
           </div>
         </motion.div>
       )}
